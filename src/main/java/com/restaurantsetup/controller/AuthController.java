@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.restaurantsetup.dto.APIResponse;
 import com.restaurantsetup.dto.LoginRequest;
 import com.restaurantsetup.dto.LoginResponse;
 import com.restaurantsetup.service.AuthService;
@@ -18,9 +19,9 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<APIResponse> login(@RequestBody LoginRequest loginRequest) {
         System.out.println("Login");
-        LoginResponse response = authService.login(loginRequest);
+        APIResponse response = authService.login(loginRequest);
         return ResponseEntity.ok(response);
     }
 }

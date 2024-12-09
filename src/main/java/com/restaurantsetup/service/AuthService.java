@@ -4,8 +4,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.restaurantsetup.config.JwtUtil;
+import com.restaurantsetup.dto.APIResponse;
 import com.restaurantsetup.dto.LoginRequest;
 import com.restaurantsetup.dto.LoginResponse;
+import com.restaurantsetup.entity.User;
 import com.restaurantsetup.repository.UserRepository;
 
 @Service
@@ -18,26 +20,42 @@ public class AuthService {
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public LoginResponse login(LoginRequest loginRequest) {
-        // Check if user exists
-        System.out.println(" function login " + loginRequest.getUsername());
-        com.restaurantsetup.entity.User user = userRepository.findByUsername(loginRequest.getUsername())
-                .orElseThrow(() -> {
-                    System.out.println("Username not found: " + loginRequest.getUsername());
-                    return new IllegalArgumentException("Invalid email or password");
-                });
-        System.out.println("Password : " + loginRequest.getPassword());
-        System.out.println("Role " + user.getRole());
-        System.out.println("Password " + user.getPassword());
-        // Check password
-        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            System.out.println("Username not found01: " + loginRequest.getUsername());
-            throw new IllegalArgumentException("Invalid email or password");
-        }
+    public APIResponse login(LoginRequest loginRequest) {
+        APIResponse response = new APIResponse();
 
-        // Generate JWT token
-        String token = jwtUtil.generateToken(user.getId(), user.getName(), user.getRole().toString());
-        System.out.println("Token " + token);
-        return new LoginResponse(token, user.getName(), user.getRole().toString());
+        try {
+            // Check if user exists
+            User user = userRepository.findByUsername(loginRequest.getUsername())
+                    .orElseThrow(() -> {
+                        return new IllegalArgumentException("Invalid username or password");
+                    });
+
+            // Check password
+            if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+                response.setErrorCode(401);
+                response.setMessage("Invalid password");
+                response.setData(null);
+                return response;
+            }
+
+            // Generate JWT token
+            String token = jwtUtil.generateToken(user.getId(), user.getUsername(),
+                    "ROLE_" + user.getRole().toString().toUpperCase());
+            LoginResponse loginResponse = new LoginResponse(token, user.getUsername(), user.getRole().toString());
+
+            // Success response
+            System.out.println("login Token " + token);
+            response.setErrorCode(200);
+            response.setMessage("Login successful");
+            response.setData(loginResponse);
+            return response;
+
+        } catch (Exception e) {
+            // Handle unexpected errors
+            response.setErrorCode(500);
+            response.setMessage(e.getMessage());
+            response.setData(null);
+            return response;
+        }
     }
 }

@@ -1,19 +1,26 @@
 package com.restaurantsetup.controller;
 
+import com.restaurantsetup.dto.APIResponse;
 import com.restaurantsetup.entity.User;
+import com.restaurantsetup.repository.UserRepository;
 import com.restaurantsetup.service.UserService;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
 @RequestMapping("/users")
+@PreAuthorize("hasRole('ROLE_MANAGER')")
 public class UserController {
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @GetMapping
     public List<User> getAllUsers() {
@@ -27,9 +34,26 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity<User> createUser(@RequestBody User user) {
-        User createdUser = userService.createUser(user);
-        return ResponseEntity.ok(createdUser);
+    public ResponseEntity<APIResponse> createUser(@RequestBody User user) {
+        System.out.println("createUser " + user.getUsername());
+        APIResponse response = new APIResponse();
+        try {
+            if (userRepository.findByUsername(user.getUsername()).isPresent()) {
+                System.out.println("Có");
+                // throw new IllegalArgumentException("Username already exists!");
+                response.setErrorCode(500);
+                response.setMessage("Username already exists!");
+                return ResponseEntity.ok(response);
+            }
+
+            userService.createUser(user);
+            response.setErrorCode(200);
+            response.setMessage("You have added staff successfully");
+        } catch (DataIntegrityViolationException e) {
+            response.setErrorCode(500);
+            response.setMessage(e.getMessage());
+        }
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
